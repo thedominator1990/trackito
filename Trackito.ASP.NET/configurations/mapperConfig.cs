@@ -16,7 +16,9 @@ namespace Trackito.ASP.NET.configurations
         {
             //User
             CreateMap<UserCreateDTO, User>().ReverseMap();
-            
+            CreateMap<UserUpdateDTO, User>().ReverseMap();
+            CreateMap<UserGetDTO, User>().ReverseMap();
+
             //ADAY
             CreateMap<AdayCreateDTO, Aday>().ReverseMap();
             CreateMap<AdayUpdateDTO, Aday>().ReverseMap();

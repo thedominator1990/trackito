@@ -10,35 +10,54 @@ export const useAlimentStore = defineStore("aliment", {
             currentMonth: { id: 1, name: "January" },
             currenEatingDay: {},
             currentEatingDayTotals: [],
+            currentUserId: 0,
+            currentUser: {},
 
        
 
         }
     },
     actions: {
-        async getAllAliment() {
-            await api.get("api/Aliments").then(res => {
-                this.allAliments = res.data
-                console.log(this.allAliments)
-            })
+
+        selectTrainingFromDate(date) {
+
+            let trainingId = this.getIdFromDate(date)
+
+            if (Number.isInteger(trainingId)) {
+            } else {
+
+                let newAday = {};
+                newAday.date = date
+                newAday.idUser = this.currentUserId
+
+                this.postAday(newAday);
+                this.getAllEatingDaysOfOneUser(1);
+
+                console.log("newAday.date", newAday.date)
+
+               trainingId = this.getIdFromDate(newAday.date)
+                console.log("trainingId", trainingId)
+
+            }
+
+            this.changeCurrentEatingDay(trainingId);
+
 
         },
 
         getIdFromDate(date) {
-
+            
             let dateOfIncomingData = date.slice(0, 10);
-            console.log("incoming date",dateOfIncomingData)
             let response = "default, cant find"
 
             for (var i = 0; i < this.allEatingDaysOfUser.length; i++) {
                 let dateOfDataToFind = this.allEatingDaysOfUser[i].date.slice(0, 10);
-                console.log("date to find", dateOfDataToFind)
+           
 
                 if (dateOfIncomingData == dateOfDataToFind) {
                     response = this.allEatingDaysOfUser[i].id
                 }
             }
-            console.log("response :", response)
             return response;
         },
 
@@ -46,15 +65,20 @@ export const useAlimentStore = defineStore("aliment", {
             let result = new Date(date);
             result.setDate(result.getDate() + days);
 
-            let zero = "";
+            
+            let zeroDay = ""
+            let zeroMonth = "";
 
             if (result.getMonth() + 1 < 10) {
-                zero = "0"
+                zeroMonth = "0"
+            }
+            if (result.getDate() < 10) {
+                zeroDay = "0"
             }
 
-            result = result.getFullYear() + "-" + (zero + String(result.getMonth() + 1)) + "-" + result.getDate()
-            console.log(result)
-          
+            result = result.getFullYear() + "-" + (zeroMonth + String(result.getMonth() + 1)) + "-" + zeroDay+ result.getDate()
+           
+            console.log("RESULT", result)
 
             return result;
            
@@ -64,14 +88,11 @@ export const useAlimentStore = defineStore("aliment", {
 
         getCurrentDate() {
             let date = this.currenEatingDay.date
-            console.log(this.currenEatingDay)
-            console.log(this.currenEatingDay.date)
-            console.log(date)
             let year = date.slice(0, 4);
 
             let month = parseInt(date.slice(6, 7));
 
-            let day = date.slice(9, 10);
+            let day = date.slice(8, 10);
             let monthToString
             switch (month) {
                 case 1: monthToString = "Janvier";
@@ -112,14 +133,29 @@ export const useAlimentStore = defineStore("aliment", {
         async getAllEatingDaysOfOneUser(userId) {
 
             await api.get('api/Adays/').then(res => {
-                console.log(res)
+                console.log("api aday get all call", res)
                 this.allEatingDaysOfUser = res.data
-                this.getCurrentEatingDay(0);
+                this.getUser(1)
                 this.getAllAliment();
+                this.currentUserId = userId;
             })
 
 
         },
+
+        async getAllAliment() {
+            await api.get("api/Aliments").then(res => {
+                this.allAliments = res.data
+            })
+
+        },
+
+        async modifyAlimentStore(aliment, id) {
+            await api.put(`api/Aliments/${id}`, aliment).then(res => {
+                console.log(res)
+            })
+        },
+
 
         async modifyAlimentDayStore(alimentDayId, alimentDay) {
 
@@ -127,13 +163,13 @@ export const useAlimentStore = defineStore("aliment", {
                 console.log(res)
             })
 
-            console.log(this.currenEatingDay);
             for (var x = 0; x < this.currenEatingDay.alimentDays; x++) {
                 if (this.currenEatingDay.alimentDays[x].id == alimentDayId) {
                     this.currenEatingDay.alimentDays[x].quantity = alimentDay.quantity
                 }
             }
         },
+
 
         async deleteAlimentDayStore(alimentDayId) {
             await api.delete(`api/AlimentDays/${alimentDayId}`).then(res => {
@@ -142,19 +178,57 @@ export const useAlimentStore = defineStore("aliment", {
             this.currenEatingDay.alimentDays = this.currenEatingDay.alimentDays.filter(alimentDay => alimentDay.id != alimentDayId);
         },
 
-        async postSetStore(alimentDay) {
+        async postAlimentDayStore(alimentDay) {
             await api.post("api/AlimentDays/", alimentDay).then(res => { console.log(res) })
 
-            this.currenTraining.sets.push(alimentDay);
+
+            this.getAllEatingDaysOfOneUser(1);
         },
         async addAlimentStore(aliment) {
             await api.post("api/Aliments/", aliment).then(res => { console.log(res) })
         },
-       
-        getCurrentEatingDay(int) {
-            this.currenEatingDay = this.allEatingDaysOfUser[int];
-         
+
+        async postAday(aday) {
+            await api.post("api/Adays", aday).then(res => {
+                console.log(res)
+            })
+
         },
+
+        async getUser(int) {
+            await api.get(`api/Users/${int}`).then(res => {
+                
+                this.currentUser = res.data
+                for (let x = 0; x < this.allEatingDaysOfUser.length; x++) {
+                    if (this.allEatingDaysOfUser[x].id == this.currentUser.lastViewedEatingId) {
+                        this.currenEatingDay = this.allEatingDaysOfUser[x]
+                    }
+                }
+                console.log("current eating day get user function", this.currenEatingDay)
+            })
+
+            
+        },
+
+        async changeCurrentEatingDay(newId) {
+            
+
+            let user = this.currentUser;
+            user.lastViewedEatingId = newId;
+            console.log("userId:", user.id)
+            console.log("user", user)
+
+
+            await api.put(`api/Users/${user.id}`, user).then(res => {
+                console.log(res)
+            })
+
+            this.getUser(1);
+
+        },
+
+
+        
         getNutrition(alimentDay, fact) {
             let aliment = this.currenEatingDay.aliments.find(aliment => aliment.id == alimentDay.alimentId)
 
@@ -200,7 +274,7 @@ export const useAlimentStore = defineStore("aliment", {
                 case 'quantity':
 
                     for (var i = 0; i < this.currenEatingDay.alimentDays.length; i++) {
-                        totalToReturn = totalToReturn + this.currenEatingDay.alimentDays[i].quantity
+                        totalToReturn = parseInt(totalToReturn) + parseInt(this.currenEatingDay.alimentDays[i].quantity)
                     }
 
                     break;

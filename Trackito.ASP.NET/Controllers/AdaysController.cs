@@ -167,6 +167,19 @@ namespace Trackito.ASP.NET.Controllers
         {
             var aday = mapper.Map<Aday>(adayDTO);
 
+            var dateOfAday = aday.Date.ToString().Substring(0, 10);
+            var allAday = await _context.Adays.ToListAsync();
+
+            for (int i = 0; i < allAday.Count; i++)
+            {
+                var dateOfEachAday = allAday[i].Date.ToString().Substring(0, 10);
+                if (dateOfEachAday == dateOfAday && allAday[i].IdUser == aday.IdUser)
+                {
+                    return Problem("there is already a eating day created for this day for this user");
+                }
+
+            }
+
             if (_context.Adays == null)
           {
               return Problem("Entity set 'TrackitoContext.Adays'  is null.");

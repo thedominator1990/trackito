@@ -26,18 +26,34 @@ namespace Trackito.ASP.NET.Controllers
 
         // GET: api/Users
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<UserGetDTO>>> GetUsers()
         {
           if (_context.Users == null)
           {
               return NotFound();
           }
-            return await _context.Users.ToListAsync();
+            var allUsers = await _context.Users.ToListAsync();
+
+            for (int i = 0; i < allUsers.Count; i++)
+            {
+                if (allUsers[i].LastViewedEatingId == null)
+                {
+                    allUsers[i].LastViewedEatingId = 1;
+                }
+                if (allUsers[i].LastViewedTrainingId == null)
+                {
+                    allUsers[i].LastViewedTrainingId = 1;
+                }
+            }
+
+            var allUsersDTO = mapper.Map <IEnumerable<UserGetDTO>>(await _context.Users.ToListAsync());
+
+            return Ok(allUsersDTO);
         }
 
         // GET: api/Users/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
+        public async Task<ActionResult<UserGetDTO>> GetUser(int id)
         {
           if (_context.Users == null)
           {
@@ -45,23 +61,44 @@ namespace Trackito.ASP.NET.Controllers
           }
             var user = await _context.Users.FindAsync(id);
 
+            if(user.LastViewedTrainingId == null)
+            {
+                user.LastViewedTrainingId = 1;
+            }
+
+            if(user.LastViewedEatingId == null)
+            {
+                user.LastViewedEatingId= 1; 
+            }
+
+            var userDTO = mapper.Map<UserGetDTO>(user);
+
             if (user == null)
             {
                 return NotFound();
             }
 
-            return user;
+            return userDTO;
         }
 
         // PUT: api/Users/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, User user)
+        public async Task<IActionResult> PutUser(int id, UserUpdateDTO userDTO)
         {
-            if (id != user.Id)
+            if (id != userDTO.Id)
             {
                 return BadRequest();
             }
+
+            var user = await _context.Users.FindAsync(id);
+
+            if(user == null)
+            {
+                return NotFound();
+            }
+
+            mapper.Map(userDTO, user);
 
             _context.Entry(user).State = EntityState.Modified;
 

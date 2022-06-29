@@ -1,18 +1,28 @@
 <template>
 
-    <button @click="checkDate()">{{getCurrentDate()}}</button>
-
     <div class="masterDiv">
 
-        <div class="head">
+        
+            <div class="eventName">
+                <i class="icon ion-ios-arrow-left" style="margin-top:25px; margin-right:30px;" @click="moveDown()"></i>
+                <h1>{{ getCurrentDate() }}</h1>
+                <i class="icon ion-ios-arrow-right" style="margin-top:25px; margin-left:30px;" @click="moveUp()"></i>
+            </div>
 
-            <h1>{{getCurrentDate()}}</h1>
-
-        </div>
 
         <div class="sectionDivs" v-for="exercise in currenTraining.exercises">
             <div class="section">
-                <h3>{{exercise.name}}</h3>
+                <div class="exerciseName">
+                    <div>
+                        <h3>{{exercise.name}}</h3>
+                    </div>
+
+                    <div class="problemIcon">
+                        <i @click="deleteExercise(exercise.id)" class="icon ion-ios-trash"></i>
+                    </div>
+
+                </div>
+
                 <div class="activityGrid">
                     <span class="topRow">Poids</span>
                     <span class="topRow">Repetition</span>
@@ -22,7 +32,7 @@
 
                             <span v-if="modifySetPin != set.id" v-bind:key="set.weight">{{set.weight}}</span>
                             <span v-if="modifySetPin == set.id" v-bind:key="set.weight">
-                                <input v-model="modifySetWeight" type="text" />
+                                <input  v-model="modifySetWeight" type="text" />
                             </span>
 
                             <span v-if="modifySetPin != set.id" v-bind:key="set.repetition">{{set.repetition}}</span>
@@ -43,10 +53,12 @@
                 </div>
             </div>
             <div class="rowFlexActivity" v-if="toggleAddSet == true && modifySetPin == exercise.id">
-                <p>Poids:</p><input v-model="newSetWeight">
-                <p>Repetitions:</p><input v-model="newSetReps">
-                <p class="checkMarkNewActivity"><i @click="acceptNewSet(exercise.id , currenTraining.id)" class="icon ion-ios-checkmark"></i></p>
-                <p class="checkMarkNewActivity"><i @click="cancelNewSet()" class="icon ion-ios-close"></i></p>
+                <p>Poids:</p><input class="problemInput" v-model="newSetWeight">
+                <p>Repetitions:</p><input class="problemInput" v-model="newSetReps">
+                                   <div class="buttonDiv">
+                                       <p class="checkMarkNewActivity"><i @click="acceptNewSet(exercise.id , currenTraining.id)" class="icon ion-ios-checkmark"></i></p>
+                                       <p class="checkMarkNewActivity"><i @click="cancelNewSet()" class="icon ion-ios-close"></i></p>
+                                   </div>
             </div>
             <div class="addActivityButtonDiv" v-if="toggleAddSet == false">
                 <button class="addActivityButton" @click="addSet(exercise.id)">
@@ -54,8 +66,48 @@
                 </button>
 
             </div>
-        </div>
 
+
+
+        </div>
+        <div class="addExercise">
+            <button class="addActivityButton" @click="toggleAddExistingExercise()"> Ajouter un exercise Existant</button>
+            <div class="trainingSelector" v-if="addExistingExerciseToggle">
+                <div class="buttonDiv">
+                    <label for="exercise"> Exercises: &nbsp</label>
+                    <select id="exercise" @change="selectExistingExercise($event)" v-model="key" class="exerciseDropDown">
+                        <option v-for="exercise in allExercise" :value="exercise.id">{{exercise.name}}</option>
+                    </select>
+                </div>
+
+
+                <div class="buttonDiv">
+                    <p class="checkMarkNewActivity"><i @click="acceptNewExercise()" class="icon ion-ios-checkmark"></i></p>
+                    <p class="checkMarkNewActivity"><i @click="cancelNewExercise()" class="icon ion-ios-close"></i></p>
+                </div>
+
+            </div>
+
+            <button class="addActivityButton" @click="toggleAddNewExercise()"> Ajouter un nouvel exercise</button>
+            <div class="addNewExercise" v-if="addNewExerciseToggle">
+                <div>
+                    <div class="buttonDiv">
+                        <p>Nom : </p>
+                        <input class="problemInput" type="text" v-model="newExerciseName" />
+                    </div>
+                    <div class="buttonDiv">
+                        <p>Muscle : </p>
+                        <input class="problemInput" type="text" v-model="newExerciseMuscle" />
+                    </div>
+
+                </div>
+                <div class="buttonDiv">
+                    <p class="checkMarkNewActivity"><i @click="acceptAddNewExercise()" class="icon ion-ios-checkmark"></i></p>
+                    <p class="checkMarkNewActivity"><i @click="cancelAddNewExercise()" class="icon ion-ios-close"></i></p>
+                    </div>
+                </div>
+
+            </div>
 
     </div>
 </template>
@@ -72,8 +124,15 @@
                 modifySetWeight: 1000,
                 modifySetRepetition: 1000,
                 toggleAddSet: false,
-                newSetReps: 100000,
-                newSetWeight: 10000,
+                newSetReps: 0,
+                newSetWeight: 0,
+
+                addExistingExerciseToggle: false,
+                currentExerciseSelectedId: 1000,
+
+                addNewExerciseToggle: false,
+                newExerciseName: "",
+                newExerciseMuscle:"",
 
 
 
@@ -82,12 +141,58 @@
         },
         computed: {
 
-            ...mapState(useTrainingStore, ["currentMonth", "allTrainingOfUser", "currenTraining"]),
+            ...mapState(useTrainingStore, ["currentMonth", "allTrainingOfUser", "currenTraining","allExercise"]),
 
 
         },
         methods: {
-            
+            moveUp() {
+                let nextDay = this.addDays(this.currenTraining.dateTraining, 1);
+                this.selectTrainingFromDate(nextDay);
+
+            },
+            moveDown() {
+                let nextDay = this.addDays(this.currenTraining.dateTraining, -1);
+                this.selectTrainingFromDate(nextDay);
+
+            },
+
+
+
+            toggleAddNewExercise() {
+                this.addNewExerciseToggle = true;
+            },
+            cancelAddNewExercise() {
+                this.addNewExerciseToggle = false;
+            },
+            acceptAddNewExercise() {
+                let newExercise = {};
+                newExercise.primaryMuscle = this.newExerciseMuscle;
+                newExercise.name = this.newExerciseName;
+
+                this.postExercise(newExercise)
+                this.addNewExerciseToggle = false;
+
+            },
+            selectExistingExercise(event) {
+
+                this.currentExerciseSelectedId = event.target.value;
+
+            },
+            acceptNewExercise() {
+                for (var x = 0; x < this.allExercise.length; x++) {
+                    console.log("current Id", this.currentExerciseSelectedId)
+                    if (this.allExercise[x].id == this.currentExerciseSelectedId) {
+                        this.currenTraining.exercises.push(this.allExercise[x])
+                    }
+                }
+            },
+            toggleAddExistingExercise() {
+                this.addExistingExerciseToggle = true
+            },
+            cancelNewExercise() {
+                this.addExistingExerciseToggle = false
+            },
 
             modifySet: function (set) {
                 this.modifySetPin = set.id;
@@ -131,9 +236,27 @@
                 this.modifySetPin = id;
                 this.toggleAddSet = true;
             },
+            deleteExercise(exerciseId){
+
+                for (var x = 0; x < this.currenTraining.sets.length; x++) {
+                    if (this.currenTraining.sets[x].exerciseId == exerciseId) {
+                        this.deleteSet(this.currenTraining.sets[x].id)
+                    }
+                }
+
+                for (var y = 0; y < this.currenTraining.exercises.length; y++) {
+
+                    if (this.currenTraining.exercises[y] == exerciseId) {
+                        this.currenTraining.exercises.splice(y, 1)
+                        console.log(this.currenTraining.exercises)
+                    }
+
+                }
+
+             },
 
             ...mapActions(useTrainingStore, ["getAllTrainingOfOneUser", "getCurrentTraining", "modifySetStore", "deleteSet",
-                "postSetStore", "getCurrentDate"]),
+                "postSetStore", "getCurrentDate", "postExercise", "selectTrainingFromDate", "addDays"]),
 
             async beforeMount() {
                 await this.getAllTrainingOfOneUser(1);
@@ -144,8 +267,40 @@
     };
 </script>
 <style scoped>
+    .problemInput {
+        align-self: flex-start;
+        margin-top: 15px;
+        height: 18px;
+    }
+    .addExercise{
+        margin-top: 15px;
+    }
+    .buttonDiv {
+        margin-top:15px;
+        display: flex;
+        flex-direction: row;
+    }
+    .exerciseDropDown {
+        width: 100px;
+        margin-right: 10px;
+    }
+    .trainingSelector {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+    }
+    .problemIcon{
+        margin-top: 15px;
+        margin-left: 10px;
+    }
+    .exerciseName {
+        display: flex;
+        flex-direction: row;
+    }
     .eventName {
-        text-align: center;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
         margin-top: 15px;
     }
 
@@ -162,6 +317,7 @@
     }
 
     .addActivityButton {
+        margin-top: 10px;
         color: black;
         background-color: #90a4ae;
         display: flex;
@@ -289,7 +445,7 @@
     .checkMarkNewActivity {
         margin-top: -0.5%;
         margin-right: 1%;
-        margin-left: 1%;
+        margin-left: 2%;
     }
 
     input {

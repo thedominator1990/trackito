@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="api\" />
+    <Folder Include="src\router\" />
   </ItemGroup>
 </Project>
